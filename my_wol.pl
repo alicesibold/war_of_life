@@ -77,17 +77,17 @@ bloodlust_move(Alive, OtherPlayerAlive, Move) :-
     move_with_least_opponents(Alive, OtherPlayerAlive, PossMoves, Move).
 
 move_with_least_opponents(Curr, Opponents, PossMoves, Best) :-
-    m_w_l_opp(Curr, Opponents, PossMoves, 100, [], Best).
+    move_with_least_opponents_h(Curr, Opponents, PossMoves, 100, [], Best).
 
-m_w_l_opp(_, _, [], _, A_Best, A_Best).
+move_with_least_opponents_h(_, _, [], _, A_Best, A_Best).
 
-m_w_l_opp(Curr, Opponents, [Move | Rest], MinOpp, A_BestMove, BestMove) :-
+move_with_least_opponents_h(Curr, Opponents, [Move | Rest], MinOpp, A_BestMove, BestMove) :-
     alter_board(Move, Curr, NewCurr),
     next_generation([NewCurr, Opponents], [_, CrankedOpp]),
     length(CrankedOpp, NumOpp),
     move_with_smaller_x([NumOpp, Move], [MinOpp, A_BestMove],
                         NewMinOpp, NewBestMove),
-    m_w_l_opp(Curr, Opponents, Rest, NewMinOpp, NewBestMove, BestMove).
+    move_with_least_opponents_h(Curr, Opponents, Rest, NewMinOpp, NewBestMove, BestMove).
 
 bloodlust('b', [AliveBlues, AliveReds], [NewAliveBlues, AliveReds], Move) :-
     bloodlust_move(AliveBlues, AliveReds, Move),
@@ -107,17 +107,17 @@ self_preservation_move(Alive, Other, Move) :-
     move_with_biggest_curr(Alive, Other, PossMoves, Move).
 
 move_with_biggest_curr(Curr, Opponents, PossMoves, Best) :-
-    m_w_b_c(Curr, Opponents, PossMoves, -1, [], Best).
+    move_with_biggest_curr_h(Curr, Opponents, PossMoves, -1, [], Best).
 
-m_w_b_c(_, _, [], _, A_Best, A_Best).
+move_with_biggest_curr_h(_, _, [], _, A_Best, A_Best).
 
-m_w_b_c(Curr, Opponents, [Move | Rest], MaxCurr, A_BestMove, BestMove) :-
+move_with_biggest_curr_h(Curr, Opponents, [Move | Rest], MaxCurr, A_BestMove, BestMove) :-
     alter_board(Move, Curr, NewCurr),
     next_generation([NewCurr, Opponents], [CrankedCurr, _]),
     length(CrankedCurr, NumCurr),
     move_with_bigger_x([NumCurr, Move], [MaxCurr, A_BestMove],
                         NewMaxCurr, NewBestMove),
-    m_w_b_c(Curr, Opponents, Rest, NewMaxCurr, NewBestMove, BestMove).
+    move_with_biggest_curr_h(Curr, Opponents, Rest, NewMaxCurr, NewBestMove, BestMove).
 
 
 self_preservation('b', [AliveBlues, AliveReds], [NewAliveBlues, AliveReds],
@@ -138,18 +138,18 @@ land_grab_move(Alive, Other, Move) :-
     move_with_biggest_diff(Alive, Other, PossMoves, Move).
 
 move_with_biggest_diff(Curr, Opponents, PossMoves, Best) :-
-    m_w_b_d(Curr, Opponents, PossMoves, -100, [], Best).
+    move_with_biggest_diff_h(Curr, Opponents, PossMoves, -100, [], Best).
 
-m_w_b_d(_, _, [], _, A_Best, A_Best).
+move_with_biggest_diff_h(_, _, [], _, A_Best, A_Best).
 
-m_w_b_d(Curr, Opponents, [Move | Rest], MaxDiff, A_BestMove, BestMove) :-
+move_with_biggest_diff_h(Curr, Opponents, [Move | Rest], MaxDiff, A_BestMove, BestMove) :-
     alter_board(Move, Curr, NewCurr),
     next_generation([NewCurr, Opponents], [CrankedCurr, CrankedOpp]),
     length(CrankedCurr, NumCurr),
     length(CrankedOpp, NumOpp),
     Diff is NumCurr - NumOpp,
-    move_with_bigger_x([Move, Diff], [A_BestMove, MaxDiff], NewBestMove, NewMaxDiff),
-    m_w_b_d(Curr, Opponents, Rest, NewMaxDiff, NewBestMove, BestMove).
+    move_with_bigger_x([Diff, Move], [MaxDiff, A_BestMove], NewMaxDiff, NewBestMove),
+    move_with_biggest_diff_h(Curr, Opponents, Rest, NewMaxDiff, NewBestMove, BestMove).
 
 
 land_grab('b', [AliveBlues, AliveReds], [NewAliveBlues, AliveReds], Move) :-
@@ -169,32 +169,35 @@ minimax_move(Alive, Other, Move) :-
     maximise_min_utility(Alive, Other, PossMoves, Move).
 
 maximise_min_utility(Curr, Opponents, PossMoves, Best) :-
-    m_m_u(Curr, Opponents, PossMoves, -200, [], Best).
+    maximise_min_utility_h(Curr, Opponents, PossMoves, -200, [], Best).
 
-m_m_u(_, _, [], _, A_BestMove, A_BestMove).
+maximise_min_utility_h(_, _, [], _, A_BestMove, A_BestMove).
 
-m_m_u(Curr, Opponents, [Move | Rest], MinMaxUtility, A_BestMove, BestMove) :-
+maximise_min_utility_h(Curr, Opponents, [Move | Rest], MinMaxUtility, A_BestMove, BestMove) :-
     alter_board(Move, Curr, NewCurr),
     next_generation([NewCurr, Opponents], [CrankedCurr, CrankedOpp]),
     possible_moves(CrankedOpp, CrankedCurr, PossOppMoves),
-    move_with_min_utility(CrankedCurr, CrankedOpp, PossOppMoves, MinUtility),
+    move_with_min_utility(CrankedCurr, CrankedOpp, PossOppMoves, MinUtility, MinMaxUtility),
     move_with_bigger_x([MinUtility, Move], [MinMaxUtility, A_BestMove],
                         NewMinMaxUtility, NewBestMove),
-    m_m_u(Curr, Opponents, Rest, NewMinMaxUtility, NewBestMove, BestMove).
+    maximise_min_utility_h(Curr, Opponents, Rest, NewMinMaxUtility, NewBestMove, BestMove).
 
-move_with_min_utility(Curr, Opp, OppPossMoves, MinUtility) :-
-    m_w_m_u(Curr, Opp, OppPossMoves, 200, MinUtility).
+move_with_min_utility(Curr, Opp, OppPossMoves, MinUtility, Alpha) :-
+    move_with_min_utility_h(Curr, Opp, OppPossMoves, 200, MinUtility, Alpha).
 
-m_w_m_u(_, _, [], A_MinUtility, A_MinUtility).
+move_with_min_utility_h(_, _, [], A_MinUtility, A_MinUtility, _).
 
-m_w_m_u(Curr, Opp, [OppMove | Rest], A_MinUtility, MinUtility) :-
+move_with_min_utility_h(Curr, Opp, [OppMove | Rest], A_MinUtility, MinUtility, Alpha) :-
     alter_board(OppMove, Opp, NewOpp),
     next_generation([Curr, NewOpp], [CrankedCurr, CrankedOpp]),
     length(CrankedCurr, NumCurr),
     length(CrankedOpp, NumOpp),
     CurrUtility is NumCurr - NumOpp,
+    (Alpha > CurrUtility ->
+    NewRest = [];
+    NewRest = Rest),
     smaller(CurrUtility, A_MinUtility, NewMinUtility),
-    m_w_m_u(Curr, Opp, Rest, NewMinUtility, MinUtility).
+    move_with_min_utility_h(Curr, Opp, NewRest, NewMinUtility, MinUtility, Alpha).
 
 minimax('b', [AliveBlues, AliveReds], [NewAliveBlues, AliveReds], Move) :-
     minimax_move(AliveBlues, AliveReds, Move),
