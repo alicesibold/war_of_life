@@ -5,7 +5,7 @@
 :- use_module(library(ordsets)).
 :- use_module(library(random)).
 :- use_module(library(system)).
-:- use_module(helper).
+:- use_module(war_of_life).     % LOAD THE PROVIDED FILE
 
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
